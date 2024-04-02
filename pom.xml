@@ -18,6 +18,7 @@
   <modules>
     <module>yangmao-live-user-interface</module>
     <module>yangmao-live-user-provider</module>
+    <module>yangmao-live-api</module>
   </modules>
 
   <properties>

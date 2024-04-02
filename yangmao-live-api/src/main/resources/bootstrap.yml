@@ -1,6 +1,6 @@
 spring:
   application:
-    name: yangmao-live-user-provider
+    name: yangmao-live-api-application
   cloud:
     nacos:
       discovery:

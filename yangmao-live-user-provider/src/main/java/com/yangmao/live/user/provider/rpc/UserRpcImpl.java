@@ -8,7 +8,7 @@ import com.yangmao.live.user.interfaces.IUserRpc;
  * @author daichenyang <daichenyang@kuaishou.com>
  * Created on 2024-04-01
  */
-@DubboService
+@DubboService(group = "test")
 public class UserRpcImpl implements IUserRpc {
     @Override
     public String test() {

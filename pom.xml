@@ -19,6 +19,7 @@
     <module>yangmao-live-user-interface</module>
     <module>yangmao-live-user-provider</module>
     <module>yangmao-live-api</module>
+    <module>yangmao-live-common</module>
   </modules>
 
   <properties>
@@ -37,4 +38,13 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <dependencies>
+    <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.24</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
 </project>

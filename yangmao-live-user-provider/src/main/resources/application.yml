@@ -1,4 +1,36 @@
 spring:
+  application:
+    name: yangmao-live-user-provider
   datasource:
     driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
     url: jdbc:shardingsphere:classpath:yangmao-db-sharding.yaml
+  data:
+    redis:
+      port: 6379
+      host: localhost
+      lettuce:
+        pool:
+          min-idle: 10
+          max-active: 50
+          max-idle: 20
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://localhost:8848?namespace=d8d774d5-a63b-4a86-b4b9-e0a949e41e73
+  protocol:
+    name: dubbo
+    port: 9090
+  server: true
+
+yangmao:
+  rmq:
+    producer:
+      nameSrv: 127.0.0.1:9876
+      groupName: ${spring.application.name}
+      retryTimes: 3
+      sendTimeOut: 3000
+    consumer:
+      nameSrv: 127.0.0.1:9876
+      groupName: ${spring.application.name}

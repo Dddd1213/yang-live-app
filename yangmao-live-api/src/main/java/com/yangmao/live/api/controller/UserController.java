@@ -1,5 +1,8 @@
 package com.yangmao.live.api.controller;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,4 +36,7 @@ public class UserController {
 
     @PostMapping("/insert")
     public Boolean insertUser(@RequestBody UserDTO userDTO){return userRpc.insertOne(userDTO);}
+
+    @PostMapping("/batchGetUserInfo")
+    public Map<Long,UserDTO> batchGetUserInfo(@RequestBody List<Long> userIds){return userRpc.batchGetUserInfo(userIds);}
 }

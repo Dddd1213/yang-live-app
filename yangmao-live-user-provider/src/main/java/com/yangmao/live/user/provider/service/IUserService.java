@@ -1,5 +1,8 @@
 package com.yangmao.live.user.provider.service;
 
+import java.util.List;
+import java.util.Map;
+
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yangmao.live.user.dto.UserDTO;
 import com.yangmao.live.user.provider.dao.po.UserPO;
@@ -15,5 +18,7 @@ public interface IUserService extends IService<UserPO> {
     Boolean updateUser(UserDTO userDTO);
 
     Boolean insertOne(UserDTO userDTO);
+
+    Map<Long,UserDTO> batchGetUserInfo(List<Long> userIds);
 
 }

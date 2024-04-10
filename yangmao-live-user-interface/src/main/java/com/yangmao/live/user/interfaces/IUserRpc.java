@@ -1,5 +1,8 @@
 package com.yangmao.live.user.interfaces;
 
+import java.util.List;
+import java.util.Map;
+
 import com.yangmao.live.user.dto.UserDTO;
 
 /**
@@ -12,5 +15,7 @@ public interface IUserRpc {
     Boolean updateUser(UserDTO userDTO);
 
     Boolean insertOne(UserDTO userDTO);
+
+    Map<Long,UserDTO> batchGetUserInfo(List<Long> userIds);
 
 }

@@ -1,5 +1,8 @@
 package com.yangmao.live.user.provider.rpc;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.dubbo.config.annotation.DubboService;
 
 import com.yangmao.live.user.dto.UserDTO;
@@ -27,4 +30,7 @@ public class UserRpcImpl implements IUserRpc {
 
     @Override
     public Boolean insertOne(UserDTO userDTO) {return userService.insertOne(userDTO);}
+
+    @Override
+    public Map<Long, UserDTO> batchGetUserInfo(List<Long> userIds) {return userService.batchGetUserInfo(userIds);}
 }

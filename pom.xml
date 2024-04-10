@@ -20,6 +20,8 @@
     <module>yangmao-live-user-provider</module>
     <module>yangmao-live-api</module>
     <module>yangmao-live-common</module>
+      <module>yangmao-live-framework</module>
+    <module>yangmao-live-framework/yangmao-live-framework-datasource-starter</module>
   </modules>
 
   <properties>

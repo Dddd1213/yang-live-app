@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: yangmao-live-id-generate-provider
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    #访问主库
+    url: jdbc:mysql://localhost:3306/yangmao_live_common?useUnicode=true&characterEncoding=utf8
+    username: root
+    password: Dcy12345..
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://localhost:8848?namespace=d8d774d5-a63b-4a86-b4b9-e0a949e41e73
+  protocol:
+    name: dubbo
+    port: 9098

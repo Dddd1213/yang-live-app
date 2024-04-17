@@ -11,9 +11,19 @@ import com.yangmao.live.framework.redis.starter.key.RedisKeyLoadMatch;
 public class UserProviderCacheKeyBuilder extends RedisKeyBuilder {
 
     private static String USER_INFO_KEY = "userInfo";
+    private static String USER_TAG_LOCK_KEY = "userTagLock";
+    private static String USER_TAG_KEY = "userTag";
 
     public String buildUserInfoKey(Long userId) {
         return super.getPrefix() + USER_INFO_KEY + super.getSplitItem() + userId;
+    }
+
+    public String buildTagLockKey(Long userId){
+        return super.getPrefix() + USER_TAG_LOCK_KEY + super.getSplitItem() + userId;
+    }
+
+    public String buildTagInfoKey(Long userId){
+        return super.getPrefix() + USER_TAG_KEY + super.getSplitItem() + userId;
     }
 
 }

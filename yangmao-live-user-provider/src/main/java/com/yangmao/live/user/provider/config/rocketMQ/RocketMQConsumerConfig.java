@@ -1,7 +1,8 @@
 package com.yangmao.live.user.provider.config.rocketMQ;
 
+import static com.yangmao.live.user.constants.RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -13,7 +14,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import com.alibaba.fastjson.JSON;
 import com.yangmao.live.framework.redis.starter.key.builder.UserProviderCacheKeyBuilder;
-import com.yangmao.live.user.dto.UserDTO;
+import com.yangmao.live.user.constants.CacheAsyncDeleteCodeEnum;
+import com.yangmao.live.user.dto.UserCacheAsyncDeleteDTO;
 
 import jakarta.annotation.Resource;
 
@@ -34,7 +36,7 @@ public class RocketMQConsumerConfig implements InitializingBean {
 
     //这个和@postconstruct是一个效果
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         initConsumer();
     }
 
@@ -46,19 +48,32 @@ public class RocketMQConsumerConfig implements InitializingBean {
             defaultMQPushConsumer.setConsumerGroup(consumerProperties.getGroupName());
             defaultMQPushConsumer.setConsumeMessageBatchMaxSize(1);
             defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-            defaultMQPushConsumer.subscribe("user-update-cache", "*");
-            defaultMQPushConsumer.setMessageListener((MessageListenerConcurrently) (msgs, context) -> {
-                String msgStr = new String(msgs.get(0).getBody());
-                UserDTO userDTO = JSON.parseObject(msgStr, UserDTO.class);
-                if (userDTO == null || userDTO.getUserId() == null) {
-                    LOGGER.error("用户id为空，参数异常，内容:{}", msgStr);
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
-                //延迟消息的回调，处理相关的缓存二次删除
-                redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId()));
-                LOGGER.info("延迟删除处理，userDTO is {}", userDTO);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            });
+            defaultMQPushConsumer.subscribe(USER_CACHE_ASYNC_DELETE_TOPIC, "*");
+            defaultMQPushConsumer.setMessageListener(
+                    (MessageListenerConcurrently) (msgs, consumeConcurrentlyContext) -> {
+                        String json = new String(msgs.get(0).getBody());
+                        UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO =
+                                JSON.parseObject(json,
+                                        UserCacheAsyncDeleteDTO.class);
+                        int code = userCacheAsyncDeleteDTO.getCode();
+                        if (code == CacheAsyncDeleteCodeEnum.USER_INFO_DELETE.getCode()) {
+                            Long userId =
+                                    JSON.parseObject(userCacheAsyncDeleteDTO.getJson()).getLong("userId");
+                            redisTemplate.delete(userProviderCacheKeyBuilder.buildUserInfoKey(
+                                    userId));
+
+                        } else if (code == CacheAsyncDeleteCodeEnum.USER_TAG_DELETE.getCode()) {
+                            Long userId = JSON.parseObject(
+                                            userCacheAsyncDeleteDTO.getJson())
+                                    .getLong("userId");
+                            redisTemplate.delete(userProviderCacheKeyBuilder.buildTagLockKey(
+                                    userId));
+                        }
+
+                        return null;
+                    }
+
+            );
             defaultMQPushConsumer.start();
             LOGGER.info("mq消费者启动成功,nameSrv is {}", consumerProperties.getNameSrv());
         } catch (MQClientException e) {

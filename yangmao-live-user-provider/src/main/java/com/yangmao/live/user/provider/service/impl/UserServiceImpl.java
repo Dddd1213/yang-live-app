@@ -23,6 +23,9 @@ import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yangmao.live.common.ConvertBeanUtils;
 import com.yangmao.live.framework.redis.starter.key.builder.UserProviderCacheKeyBuilder;
+import com.yangmao.live.user.constants.CacheAsyncDeleteCodeEnum;
+import com.yangmao.live.user.constants.RocketMqConstants;
+import com.yangmao.live.user.dto.UserCacheAsyncDeleteDTO;
 import com.yangmao.live.user.dto.UserDTO;
 import com.yangmao.live.user.provider.dao.mapper.IUserMapper;
 import com.yangmao.live.user.provider.dao.po.UserPO;
@@ -38,7 +41,7 @@ import jakarta.annotation.Resource;
 public class UserServiceImpl extends ServiceImpl<IUserMapper, UserPO> implements IUserService {
 
     @Resource
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String,UserDTO> redisTemplate;
     @Resource
     private UserProviderCacheKeyBuilder userProviderCacheKeyBuilder;
     @Resource
@@ -69,18 +72,7 @@ public class UserServiceImpl extends ServiceImpl<IUserMapper, UserPO> implements
         }
         this.updateById(ConvertBeanUtils.convert(userDTO, UserPO.class));
 
-        String key = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
-        redisTemplate.delete(key);
-        try {
-            Message message = new Message();
-            message.setTopic("user-update-cache");
-            message.setBody(JSON.toJSONString(userDTO).getBytes());
-            //延迟级别，表示延迟一秒发送
-            message.setDelayTimeLevel(1);
-            mqProducer.send(message);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+       deleteFromRedis(userDTO);
 
         return true;
     }
@@ -149,5 +141,28 @@ public class UserServiceImpl extends ServiceImpl<IUserMapper, UserPO> implements
     private int createRadomExpireTime(){
         int time = ThreadLocalRandom.current().nextInt(1000);
         return time + 60*30;
+    }
+
+    private void deleteFromRedis(UserDTO userDTO) {
+        String key = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
+        redisTemplate.delete(key);
+
+        HashMap<String, Object> json = new HashMap<>();
+        json.put("userId",userDTO.getUserId());
+        UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = UserCacheAsyncDeleteDTO.builder()
+                .code(CacheAsyncDeleteCodeEnum.USER_INFO_DELETE.getCode())
+                .json(JSON.toJSONString(json))
+                .build();
+
+        Message message = new Message();
+        message.setTopic(RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC);
+        message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
+        //延迟级别，表示延迟一秒发送
+        message.setDelayTimeLevel(1);
+        try {
+            mqProducer.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -24,6 +24,7 @@
     <module>yangmao-live-framework/yangmao-live-framework-datasource-starter</module>
     <module>yangmao-live-id-generate-interface</module>
     <module>yangmao-live-id-generate-provider</module>
+      <module>yangmao-live-gateway</module>
   </modules>
 
   <properties>

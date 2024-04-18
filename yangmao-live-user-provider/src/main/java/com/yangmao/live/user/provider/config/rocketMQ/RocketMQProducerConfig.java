@@ -1,8 +1,8 @@
 package com.yangmao.live.user.provider.config.rocketMQ;
 
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -11,7 +11,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,43 +23,32 @@ import jakarta.annotation.Resource;
 @Configuration
 public class RocketMQProducerConfig {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(RocketMQProducerConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RocketMQProducerConfig.class);
 
     @Resource
-    private RocketMQProducerProperties producerProperties;
-    @Value("${spring.application.name}")
-    private String applicationName;
+    private RocketMQProducerProperties rocketMQProducerProperties;
 
     @Bean
     public MQProducer mqProducer(){
-
-        ThreadPoolExecutor asyncThreadPoolExecutor = new ThreadPoolExecutor(100, 150, 3, TimeUnit.MINUTES,
-                new ArrayBlockingQueue<>(1000), new ThreadFactory() {
+        ThreadPoolExecutor asyncThreadPool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors() * 2, 100, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName(applicationName + ":rmq-producer" + ThreadLocalRandom.current().nextInt());
-                return thread;
+                return new Thread(r, "rocketmq-async-thread-" + new Random().ints().toString());
             }
         });
-
         DefaultMQProducer defaultMQProducer = new DefaultMQProducer();
+        defaultMQProducer.setProducerGroup(rocketMQProducerProperties.getGroupName());
+        defaultMQProducer.setNamesrvAddr(rocketMQProducerProperties.getNameSrv());
+        defaultMQProducer.setRetryTimesWhenSendFailed(rocketMQProducerProperties.getRetryTimes());
+        defaultMQProducer.setRetryTimesWhenSendAsyncFailed(rocketMQProducerProperties.getRetryTimes());
+        defaultMQProducer.setRetryAnotherBrokerWhenNotStoreOK(true);
+        defaultMQProducer.setAsyncSenderExecutor(asyncThreadPool);
         try {
-            defaultMQProducer.setNamesrvAddr(producerProperties.getNameSrv());
-            defaultMQProducer.setProducerGroup(producerProperties.getGroupName());
-            defaultMQProducer.setRetryTimesWhenSendFailed(producerProperties.getRetryTimes());
-            defaultMQProducer.setRetryTimesWhenSendAsyncFailed(producerProperties.getRetryTimes());
-            defaultMQProducer.setRetryAnotherBrokerWhenNotStoreOK(true);
-            //设置异步发送的线程池
-            defaultMQProducer.setAsyncSenderExecutor(asyncThreadPoolExecutor);
             defaultMQProducer.start();
-            LOGGER.info("mq生产者启动成功,nameSrv is {}", producerProperties.getNameSrv());
+            LOGGER.info("mq生产者启动成功,namesrv is {}", rocketMQProducerProperties.getNameSrv());
         } catch (MQClientException e) {
             throw new RuntimeException(e);
         }
         return defaultMQProducer;
-
     }
-
-
 }

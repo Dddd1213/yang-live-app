@@ -41,9 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> implements IUserTagService {
 
     @Resource
-    private RedisTemplate<String,String> redisTemplate;
-    @Resource
-    private RedisTemplate<String, UserTagDTO> userTagDTORedisTemplate;
+    private RedisTemplate redisTemplate;
     @Resource
     private UserProviderCacheKeyBuilder cacheKeyBuilder;
     @Resource
@@ -55,7 +53,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
     public boolean setTag(Long userId, UserTagsEnum userTagsEnum) {
         boolean updateStatus = this.baseMapper.setTag(userId, userTagsEnum.getFieldName(), userTagsEnum.getTag()) > 0;
         if(updateStatus){
-            this.deleteByUserIdFromRedis(userId);
+//todo            this.deleteByUserIdFromRedis(userId);
             return true;
         }
         //如果存在该标签（即重复插入），直接返回false
@@ -66,7 +64,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
         //如果是因为不存在该用户的记录失败的，应该先插入一行用户记录，再增加标签
         //高并发的情况下可能会重复插入 -> redis分布式锁
         String key = cacheKeyBuilder.buildTagLockKey(userId);
-        String setNxResult =  redisTemplate.execute((RedisCallback<String>) connection -> {
+        String setNxResult = (String) redisTemplate.execute((RedisCallback<String>) connection -> {
             RedisSerializer keySerializer = redisTemplate.getKeySerializer();
             RedisSerializer valueSerializer = redisTemplate.getValueSerializer();
             return (String) connection.execute("set",
@@ -93,7 +91,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
         if(!cancelStatus){
             return false;
         }
-        this.deleteByUserIdFromRedis(userId);
+//todo        this.deleteByUserIdFromRedis(userId);
         return true;
     }
 
@@ -117,7 +115,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
 
     private void deleteByUserIdFromRedis(Long userId){
         String key = cacheKeyBuilder.buildTagInfoKey(userId);
-        userTagDTORedisTemplate.delete(key);
+        redisTemplate.delete(key);
 
         HashMap<String, Object> json = new HashMap<>();
         json.put("userId",userId);
@@ -126,12 +124,13 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
                 .code(CacheAsyncDeleteCodeEnum.USER_TAG_DELETE.getCode())
                 .json(JSON.toJSONString(json))
                 .build();
-        Message message = new Message();
-        message.setTopic(RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC);
-        message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
-        //延迟级别，表示延迟一秒发送
-        message.setDelayTimeLevel(1);
+
         try {
+            Message message = new Message();
+            message.setTopic(RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC);
+            message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
+            //延迟级别，表示延迟一秒发送
+            message.setDelayTimeLevel(1);
             mqProducer.send(message);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -145,7 +144,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
      */
     private UserTagDTO queryByUserId(Long userId){
         String key = cacheKeyBuilder.buildUserInfoKey(userId);
-        UserTagDTO userTagDTO = userTagDTORedisTemplate.opsForValue().get(key);
+        UserTagDTO userTagDTO = (UserTagDTO) redisTemplate.opsForValue().get(key);
         if(userTagDTO != null){
             return userTagDTO;
         }
@@ -154,7 +153,7 @@ public class UserTagServiceImpl extends ServiceImpl<IUserTagMapper, UserTagPO> i
             return null;
         }
         userTagDTO = ConvertBeanUtils.convert(userTagPO, UserTagDTO.class);
-        userTagDTORedisTemplate.opsForValue().set(key,userTagDTO,30, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key,userTagDTO,30, TimeUnit.MINUTES);
         return userTagDTO;
     }
 

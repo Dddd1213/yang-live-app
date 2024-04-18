@@ -2,7 +2,6 @@ package com.yangmao.live.user.dto;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,9 +28,5 @@ public class UserTagDTO implements Serializable {
     private Long tagInfo02;
 
     private Long tagInfo03;
-
-    private LocalDateTime createTime;
-
-    private LocalDateTime updateTime;
 
 }

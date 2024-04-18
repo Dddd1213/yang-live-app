@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.rocketmq.client.producer.MQProducer;
-import org.apache.rocketmq.common.message.Message;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,13 +18,9 @@ import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yangmao.live.common.ConvertBeanUtils;
 import com.yangmao.live.framework.redis.starter.key.builder.UserProviderCacheKeyBuilder;
-import com.yangmao.live.user.constants.CacheAsyncDeleteCodeEnum;
-import com.yangmao.live.user.constants.RocketMqConstants;
-import com.yangmao.live.user.dto.UserCacheAsyncDeleteDTO;
 import com.yangmao.live.user.dto.UserDTO;
 import com.yangmao.live.user.provider.dao.mapper.IUserMapper;
 import com.yangmao.live.user.provider.dao.po.UserPO;
@@ -41,7 +36,7 @@ import jakarta.annotation.Resource;
 public class UserServiceImpl extends ServiceImpl<IUserMapper, UserPO> implements IUserService {
 
     @Resource
-    private RedisTemplate<String,UserDTO> redisTemplate;
+    private RedisTemplate redisTemplate;
     @Resource
     private UserProviderCacheKeyBuilder userProviderCacheKeyBuilder;
     @Resource
@@ -147,22 +142,22 @@ public class UserServiceImpl extends ServiceImpl<IUserMapper, UserPO> implements
         String key = userProviderCacheKeyBuilder.buildUserInfoKey(userDTO.getUserId());
         redisTemplate.delete(key);
 
-        HashMap<String, Object> json = new HashMap<>();
-        json.put("userId",userDTO.getUserId());
-        UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = UserCacheAsyncDeleteDTO.builder()
-                .code(CacheAsyncDeleteCodeEnum.USER_INFO_DELETE.getCode())
-                .json(JSON.toJSONString(json))
-                .build();
-
-        Message message = new Message();
-        message.setTopic(RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC);
-        message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
-        //延迟级别，表示延迟一秒发送
-        message.setDelayTimeLevel(1);
-        try {
-            mqProducer.send(message);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+//        HashMap<String, Object> json = new HashMap<>();
+//        json.put("userId",userDTO.getUserId());
+//        UserCacheAsyncDeleteDTO userCacheAsyncDeleteDTO = UserCacheAsyncDeleteDTO.builder()
+//                .code(CacheAsyncDeleteCodeEnum.USER_INFO_DELETE.getCode())
+//                .json(JSON.toJSONString(json))
+//                .build();
+//
+//        Message message = new Message();
+//        message.setTopic(RocketMqConstants.USER_CACHE_ASYNC_DELETE_TOPIC);
+//        message.setBody(JSON.toJSONString(userCacheAsyncDeleteDTO).getBytes());
+//        //延迟级别，表示延迟一秒发送
+//        message.setDelayTimeLevel(1);
+//        try {
+//            mqProducer.send(message);
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
     }
 }
